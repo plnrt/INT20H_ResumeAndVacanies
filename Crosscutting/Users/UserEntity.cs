@@ -11,8 +11,7 @@
 
     public enum UserType
     {
-        User = 0,
-        Dev,
+        Dev=0,
         HR,
         Investor,
     }

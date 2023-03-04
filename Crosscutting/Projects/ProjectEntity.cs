@@ -1,22 +1,23 @@
-﻿using System;
+﻿using Crosscutting.Rating;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Crosscutting.Rating
+namespace Crosscutting.Projects
 {
-    public class Rate
+    public class ProjectEntity : BaseEntity
     {
         public string Name { get; set; }
         public string Description { get; set; }
 
         public string OwnerUsername { get; set; }
 
-        public string MembersUsernamesList { get; set; }
+        public List<string> MembersUsernames { get; set; }
 
         public double Rating { get; set; }
 
-        public string RatesList { get; set; }
+        public string RatesIdList { get; set; }
     }
 }

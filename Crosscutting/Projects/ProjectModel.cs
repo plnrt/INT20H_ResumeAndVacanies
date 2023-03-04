@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Crosscutting.Projects
 {
-    public class Project : BaseEntity
+    public class ProjectModel : BaseEntity
     {
         public string Name { get; set; }
         public string Description { get; set; }
@@ -18,6 +18,6 @@ namespace Crosscutting.Projects
 
         public double Rating { get; set; }
 
-        public List<Rate> rates { get; set; }
+        public List<Rate> Rates { get; set; }
      }
 }
