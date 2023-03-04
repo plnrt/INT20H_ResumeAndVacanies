@@ -1,33 +1,106 @@
+using Crosscutting;
+using Crosscutting.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using SqlLiteManager;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace INT20H_ResumeAndVacanies.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    public class AccountController : ControllerBase
     {
-        private static readonly string[] Summaries = new[]
-        {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
+        private readonly ILogger<AccountController> _logger;
 
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        private readonly ISqliteRepositoryManager _sqliteRepositoryManager;
+
+        public AccountController(ILogger<AccountController> logger, ISqliteRepositoryManager sqliteRepositoryManager, IConfiguration configuration)
         {
-            _logger = logger;
+            this._logger = logger;
+            this._sqliteRepositoryManager = sqliteRepositoryManager;
+            this._configuration = configuration;
         }
 
-        [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
+        [HttpPost]
+        [Route("login")]
+        public async Task<IActionResult> Login(UserLoginModel model)
         {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            var users = await this._sqliteRepositoryManager.QueryAll<UserEntity>().ConfigureAwait(false);
+            var user = users.FirstOrDefault(t => t.Username.Equals(model.Username));
+            if (user != null)
             {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+                if (user.Password.Equals(model.Password))
+                {
+                    var claims = new[]
+                    {
+                        new Claim(JwtRegisteredClaimNames.UniqueName, model.Username),
+                    };
+
+                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._configuration["Tokens:Key"]));
+                    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                    var token = new JwtSecurityToken(this._configuration["Tokens:Issuer"],
+                        this._configuration["Tokens:Issuer"],
+                        claims,
+                        expires: DateTime.Now.AddMinutes(30),
+                        signingCredentials: credentials);
+
+                    return this.Ok(new
+                    {
+                        token = new JwtSecurityTokenHandler().WriteToken(token),
+                        expiration = new DateTimeOffset(token.ValidTo).ToUnixTimeMilliseconds(),
+                        username = model.Username,
+                    });
+                }
+            }
+            return this.Unauthorized("Invalid username or password");
+        }
+
+        [HttpPost]
+        [Route("change")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordModel model)
+        {
+            var currentUser = this.User;
+            var users = await this._sqliteRepositoryManager.QueryAll<UserEntity>().ConfigureAwait(false);
+            var user = users.FirstOrDefault(t => t.Username.Equals(model.Username));
+            if (user != null)
+            {
+                if (user.Password.Equals(model.OldPassword))
+                {
+                    if (model.NewPassword.Equals(model.ConfirmNewPassword))
+                    {
+                        user.Password = model.NewPassword;
+                        await this._sqliteRepositoryManager.Update(user, user.Guid).ConfigureAwait(false);
+                        return this.Ok();
+                    }
+                    return Unauthorized("New password not equal confirm password");
+                }
+                return Unauthorized("Old password is incorrect");
+            }
+            return Unauthorized("Invalid username or password");
+        }
+
+        [HttpPost]
+        [Route("registeruser")]
+        public async Task RegisterUser(UserLoginModel model)
+        {
+            var entity = new UserEntity()
+            {
+                Guid = Guid.NewGuid().ToString(),
+                Created = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture),
+                Username = model.Username,
+                Password = model.Password
+            };
+
+            await this._sqliteRepositoryManager.Create(entity).ConfigureAwait(false);
         }
     }
 }

@@ -11,6 +11,6 @@ namespace Crosscutting
     {
         public string Username { get; set; }
 
-        public List<ProjectMOdel> FavouriteMealsIds { get; set; } = new List<ProjectMOdel>();
+        public List<ProjectModel> FavouriteMealsIds { get; set; } = new List<ProjectModel>();
     }
 }

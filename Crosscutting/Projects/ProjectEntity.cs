@@ -14,10 +14,13 @@ namespace Crosscutting.Projects
 
         public string OwnerUsername { get; set; }
 
-        public List<string> MembersUsernames { get; set; }
+        public string MembersUsernames { get; set; }
 
         public double Rating { get; set; }
 
-        public string RatesIdList { get; set; }
+        //public string RatesIdList { get; set; }
+
+        public string Category { get; set; }
     }
+
 }

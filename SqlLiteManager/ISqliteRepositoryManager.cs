@@ -6,6 +6,8 @@
 
         Task<T> Load<T>(string id);
 
+        Task<T> LoadByUsername<T>(string column, string username);
+
         Task Create<T>(T instance);
 
         Task Update<T>(T instance, string id);

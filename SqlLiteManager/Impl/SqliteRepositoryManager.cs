@@ -3,6 +3,7 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Text;
 
@@ -64,7 +65,24 @@ namespace SqlLiteManager.Impl
                 var tableName = this.GetCleanTableName(typeof(T).Name);
                 await using var connection = new SqliteConnection(this.GetCurrentDictionary());
                 SQLitePCL.Batteries.Init();
-                var result = await connection.QueryFirstAsync<T>($"select * from {tableName} where id = '{id}'");
+                var result = await connection.QueryFirstAsync<T>($"select * from {tableName} where guid = '{id}'");
+                return result;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e.Serialize());
+                throw;
+            }
+
+        }
+        public async Task<T> LoadByUsername<T>(string column, string username)
+        {
+            try
+            {
+                var tableName = this.GetCleanTableName(typeof(T).Name);
+                await using var connection = new SqliteConnection(this.GetCurrentDictionary());
+                SQLitePCL.Batteries.Init();
+                var result = await connection.QueryFirstAsync<T>($"select * from {tableName} where {column} = '{username}'");
                 return result;
             }
             catch (Exception e)
@@ -198,7 +216,7 @@ namespace SqlLiteManager.Impl
                 await using var connection = new SqliteConnection(this.GetCurrentDictionary());
                 SQLitePCL.Batteries.Init();
                 await connection.OpenAsync();
-                await using var command = new SqliteCommand($"delete from {tableName} where id = '{id}'", connection);
+                await using var command = new SqliteCommand($"delete from {tableName} where guid = '{id}'", connection);
                 await command.ExecuteNonQueryAsync().ConfigureAwait(true);
                 await using var vacuumCommand = new SqliteCommand("vacuum", connection);
                 await vacuumCommand.ExecuteNonQueryAsync().ConfigureAwait(true);

@@ -4,6 +4,6 @@
     {
         public string Guid { get; set; }
         
-        public DateTime Created { get; set; }
+        public string Created { get; set; }
     }
 }
